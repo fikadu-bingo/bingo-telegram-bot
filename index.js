@@ -2,27 +2,32 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const express = require('express');
+const bodyParser = require('body-parser');
 
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
+const appUrl = process.env.APP_URL; // Your Render service URL, e.g., "https://your-app-name.onrender.com"
 
-// Create bot
-const bot = new TelegramBot(token, { polling: true });
-
-// Minimal Express server
+// ✅ Create Express app
 const app = express();
+app.use(bodyParser.json());
 
+// ✅ Create bot in webhook mode
+const bot = new TelegramBot(token);
+bot.setWebHook(`${appUrl}/bot${token}`);
+
+// ✅ Express route for webhook
+app.post(`/bot${token}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+// ✅ Health check
 app.get("/", (req, res) => {
-  res.send("✅ 1Bingo Telegram Bot is running!");
+  res.send("✅ 1Bingo Telegram Bot is running with webhook!");
 });
 
-// Start Express server to keep Render happy
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Web server running on port ${PORT}`);
-});
-
-// /start with Play button
+// /start
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -100,4 +105,8 @@ bot.onText(/\/status/, async (msg) => {
   }
 });
 
-console.log("Bot is running...");
+// ✅ Start Express server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Web server running on port ${PORT}`);
+});
