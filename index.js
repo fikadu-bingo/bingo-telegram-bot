@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
-const appUrl = process.env.APP_URL; // Your Render service URL, e.g., "https://your-app-name.onrender.com"
+const appUrl = "https://bingo-telegram-bot.onrender.com"; // Your Render service URL, e.g., "https://your-app-name.onrender.com"
 
 // ✅ Create Express app
 const app = express();
