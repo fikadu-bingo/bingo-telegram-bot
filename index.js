@@ -1,12 +1,26 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
+const express = require('express');
 
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
 
-// ✅ Create bot first
+// Create bot
 const bot = new TelegramBot(token, { polling: true });
+
+// Minimal Express server
+const app = express();
+
+app.get("/", (req, res) => {
+  res.send("✅ 1Bingo Telegram Bot is running!");
+});
+
+// Start Express server to keep Render happy
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Web server running on port ${PORT}`);
+});
 
 // /start with Play button
 bot.onText(/\/start/, (msg) => {
@@ -18,7 +32,7 @@ bot.onText(/\/start/, (msg) => {
         [
           {
             text: "▶️ Play",
-            url: "https://bingo-telegram-web.vercel.app" // <-- Your frontend web app URL
+            url: "https://bingo-telegram-web.vercel.app" // Your frontend URL
           }
         ]
       ]
