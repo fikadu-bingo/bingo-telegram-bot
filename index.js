@@ -5,10 +5,10 @@ const axios = require('axios');
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
 
-// ✅ Create bot first!
+// ✅ Create bot first
 const bot = new TelegramBot(token, { polling: true });
 
-// ✅ /start handler with Play button
+// /start with Play button
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -18,7 +18,7 @@ bot.onText(/\/start/, (msg) => {
         [
           {
             text: "▶️ Play",
-            url: "https://bingo-telegram-web.vercel.app" // <-- Your frontend URL
+            url: "https://bingo-telegram-web.vercel.app" // <-- Your frontend web app URL
           }
         ]
       ]
@@ -87,15 +87,3 @@ bot.onText(/\/status/, async (msg) => {
 });
 
 console.log("Bot is running...");
-
-const express = require("express");
-const app = express();
-
-app.get("/", (req, res) => {
-  res.send("Bot is running...");
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Express server running on port ${PORT}`);
-});
