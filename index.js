@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
-const appUrl = "https://bingo-telegram-bot.onrender.com"; // Your Render service URL, e.g., "https://your-app-name.onrender.com"
+const appUrl = process.env.APP_URL; // e.g., "https://your-app-name.onrender.com"
 
 // ✅ Create Express app
 const app = express();
@@ -31,20 +31,61 @@ app.get("/", (req, res) => {
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
-  const options = {
+  const contactOptions = {
     reply_markup: {
-      inline_keyboard: [
-        [
-          {
-            text: "▶️ Play",
-            url: "https://bingo-telegram-web.vercel.app" // Your frontend URL
-          }
-        ]
-      ]
+      keyboard: [
+        [{
+          text: "📞 Share Contact",
+          request_contact: true
+        }]
+      ],
+      resize_keyboard: true,
+      one_time_keyboard: true
     }
   };
 
-  bot.sendMessage(chatId, "🎉 Welcome to 1Bingo! Click 'Play' to open the game.", options);
+  bot.sendMessage(chatId, "👋 Welcome to 1Bingo!\n\nPlease share your contact to continue.", contactOptions);
+});
+
+// When user shares contact
+bot.on("contact", async (msg) => {
+  const chatId = msg.chat.id;
+  const contact = msg.contact;
+  const username = msg.from.username || "NoUsername";
+  const phoneNumber = contact.phone_number;
+  const firstName = contact.first_name || "";
+
+  // 🔥 You can also save to your backend
+  try {
+    await axios.post(`${backendUrl}/api/user/save`, {
+      telegramId: chatId,
+      username: username,
+      phoneNumber: phoneNumber,
+      firstName: firstName
+    });
+
+    console.log(`✅ Contact saved for ${username}`);
+
+    // Show play button after saving contact
+    const options = {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: "▶️ Play",
+              url: "https://bingo-telegram-web.vercel.app" // Your frontend URL
+            }
+          ]
+        ]
+      }
+    };
+
+    bot.sendMessage(chatId, "✅ Contact received! Now you can start playing 🎮.", options);
+
+  } catch (error) {
+    console.error("❌ Error saving contact:", error.message);
+    bot.sendMessage(chatId, "❌ Error saving your contact. Please try again later.");
+  }
 });
 
 // /help
@@ -61,7 +102,7 @@ bot.onText(/\/join/, async (msg) => {
   try {
     const res = await axios.post(`${backendUrl}/api/game/join`, {
       telegramId: chatId,
-      username: msg.from.username || 'NoUsername'
+      username: msg.from.username || "NoUsername"
     });
 
     bot.sendMessage(chatId, `✅ You joined the game! Your ticket: ${res.data.ticketNumber}`);
