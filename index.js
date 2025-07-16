@@ -1,12 +1,12 @@
-require('dotenv').config();
-const TelegramBot = require('node-telegram-bot-api');
-const axios = require('axios');
-const express = require('express');
-const bodyParser = require('body-parser');
+require("dotenv").config();
+const TelegramBot = require("node-telegram-bot-api");
+const axios = require("axios");
+const express = require("express");
+const bodyParser = require("body-parser");
 
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
-const appUrl = process.env.APP_URL; // e.g., "https://your-app-name.onrender.com"
+const appUrl = "https://bingo-telegram-bot.onrender.com"; // e.g., "https://your-app-name.onrender.com"
 
 // ✅ Create Express app
 const app = express();
@@ -34,14 +34,16 @@ bot.onText(/\/start/, (msg) => {
   const contactOptions = {
     reply_markup: {
       keyboard: [
-        [{
-          text: "📞 Share Contact",
-          request_contact: true
-        }]
+        [
+          {
+            text: "📞 Share Contact",
+            request_contact: true,
+          },
+        ],
       ],
       resize_keyboard: true,
-      one_time_keyboard: true
-    }
+      one_time_keyboard: true,
+    },
   };
 
   bot.sendMessage(chatId, "👋 Welcome to 1Bingo!\n\nPlease share your contact to continue.", contactOptions);
@@ -55,29 +57,29 @@ bot.on("contact", async (msg) => {
   const phoneNumber = contact.phone_number;
   const firstName = contact.first_name || "";
 
-  // 🔥 You can also save to your backend
+  // ✅ Send to backend
   try {
-    await axios.post(`${backendUrl}/api/user/save`, {
+    await axios.post(`${backendUrl}/api/user/telegram-auth`, {
       telegramId: chatId,
       username: username,
       phoneNumber: phoneNumber,
-      firstName: firstName
+      firstName: firstName,
     });
 
     console.log(`✅ Contact saved for ${username}`);
 
-    // Show play button after saving contact
+    // Show play button after saving
     const options = {
       reply_markup: {
         inline_keyboard: [
           [
             {
               text: "▶️ Play",
-              url: "https://bingo-telegram-web.vercel.app" // Your frontend URL
-            }
-          ]
-        ]
-      }
+              url: "https://bingo-telegram-web.vercel.app", // ✅ your frontend URL
+            },
+          ],
+        ],
+      },
     };
 
     bot.sendMessage(chatId, "✅ Contact received! Now you can start playing 🎮.", options);
@@ -102,7 +104,7 @@ bot.onText(/\/join/, async (msg) => {
   try {
     const res = await axios.post(`${backendUrl}/api/game/join`, {
       telegramId: chatId,
-      username: msg.from.username || "NoUsername"
+      username: msg.from.username || "NoUsername",
     });
 
     bot.sendMessage(chatId, `✅ You joined the game! Your ticket: ${res.data.ticketNumber}`);
@@ -117,7 +119,7 @@ bot.onText(/\/bingo/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const res = await axios.post(`${backendUrl}/api/bingo`, {
-      telegramId: chatId
+      telegramId: chatId,
     });
 
     if (res.data.success) {
@@ -136,7 +138,7 @@ bot.onText(/\/status/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const res = await axios.get(`${backendUrl}/api/status`, {
-      params: { telegramId: chatId }
+      params: { telegramId: chatId },
     });
 
     bot.sendMessage(chatId, `🎲 Your game status: ${res.data.status}`);
@@ -145,9 +147,8 @@ bot.onText(/\/status/, async (msg) => {
     bot.sendMessage(chatId, "❌ Unable to fetch status right now.");
   }
 });
-
 // ✅ Start Express server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Web server running on port ${PORT}`);
+  console.log(`✅ Web server running on port ${PORT}`);
 });
