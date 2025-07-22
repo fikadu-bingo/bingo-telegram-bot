@@ -27,11 +27,10 @@ app.get("/", (req, res) => {
   res.send("✅ 1Bingo Telegram Bot is running with webhook!");
 });
 
-// Ask phone ONLY if user not registered yet
+// /start — Ask phone only if not registered
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   try {
-    // Check if user already exists
     const response = await axios.get(`${backendUrl}/api/user/check/${chatId}`);
     const exists = response.data.exists;
 
@@ -51,7 +50,6 @@ bot.onText(/\/start/, async (msg) => {
           one_time_keyboard: true,
         },
       };
-
       bot.sendMessage(chatId, "👋 Welcome to 1Bingo!\nPlease share your phone number to continue:", contactOptions);
     }
   } catch (error) {
@@ -64,19 +62,27 @@ bot.onText(/\/start/, async (msg) => {
 bot.on("contact", async (msg) => {
   const chatId = msg.chat.id;
   const contact = msg.contact;
-  const username = msg.from.username || "NoUsername";
   const phoneNumber = contact.phone_number;
   const firstName = contact.first_name || "";
-  const photoUrl = msg.from.photo?.small_file_id || ""; // optional
+  const username = msg.from.username || "NoUsername";
+
+  let profile_picture = "";
+  try {
+    const userPhotos = await bot.getUserProfilePhotos(chatId, { limit: 1 });
+    if (userPhotos.total_count > 0) {
+      profile_picture = userPhotos.photos[0][0].file_id;
+    }
+  } catch (err) {
+    console.log("Could not fetch user photo:", err.message);
+  }
 
   try {
-    // Save user
     await axios.post(`${backendUrl}/api/user/telegram-auth`, {
       telegram_id: chatId,
       username,
       phone_number: phoneNumber,
       first_name: firstName,
-      profile_picture: photoUrl, // store if backend supports it
+      profile_picture,
     });
 
     console.log(`✅ Contact saved for ${username}`);
@@ -121,7 +127,6 @@ bot.onText(/\/bingo/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const res = await axios.post(`${backendUrl}/api/bingo`, { telegramId: chatId });
-
     if (res.data.success) {
       bot.sendMessage(chatId, "🎉 Congratulations! You called Bingo successfully!");
     } else {
@@ -132,6 +137,7 @@ bot.onText(/\/bingo/, async (msg) => {
     bot.sendMessage(chatId, "❌ Error calling Bingo. Please try again.");
   }
 });
+
 // /status
 bot.onText(/\/status/, async (msg) => {
   const chatId = msg.chat.id;
