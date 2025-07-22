@@ -6,89 +6,93 @@ const bodyParser = require("body-parser");
 
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
-const appUrl = "https://bingo-telegram-bot.onrender.com"; // ✅ your Render domain
+const appUrl = "https://bingo-telegram-bot.onrender.com";
 
-// ✅ Create Express app
+// Create Express app
 const app = express();
 app.use(bodyParser.json());
 
-// ✅ Create bot in webhook mode
-const bot = new TelegramBot(token, { webHook: { port: 3000 } }); // ✅ fixed webhook option syntax
-bot.setWebHook(`${appUrl}/bot${token}`); // ✅ fixed string template quotes
+// Create bot in webhook mode
+const bot = new TelegramBot(token, { webHook: { port: 3000 } });
+bot.setWebHook(`${appUrl}/bot${token}`);
 
-// ✅ Express route for webhook
+// Webhook route
 app.post(`/bot${token}`, (req, res) => {
   bot.processUpdate(req.body);
   res.sendStatus(200);
 });
 
-// ✅ Health check
+// Health check
 app.get("/", (req, res) => {
   res.send("✅ 1Bingo Telegram Bot is running with webhook!");
 });
 
-// ✅ /start — Ask user to share contact
-bot.onText(/\/start/, (msg) => {
+// Ask phone ONLY if user not registered yet
+bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
+  try {
+    // Check if user already exists
+    const response = await axios.get(`${backendUrl}/api/user/check/${chatId}`);
+    const exists = response.data.exists;
 
-  const contactOptions = {
-    reply_markup: {
-      keyboard: [
-        [
-          {
-            text: "📞 Share Your Phone",
-            request_contact: true,
-          },
-        ],
-      ],
-      resize_keyboard: true,
-      one_time_keyboard: true,
-    },
-  };
+    if (exists) {
+      bot.sendMessage(chatId, "✅ You're already registered!\nTap below to play 🎮", {
+        reply_markup: {
+          inline_keyboard: [[{ text: "▶️ Play", url: "https://bingo-telegram-web.vercel.app" }]],
+        },
+      });
+    } else {
+      const contactOptions = {
+        reply_markup: {
+          keyboard: [
+            [{ text: "📞 Share Your Phone", request_contact: true }],
+          ],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      };
 
-  bot.sendMessage(chatId, "👋 Welcome to 1Bingo!\n\nPlease share your phone number to continue:", contactOptions);
+      bot.sendMessage(chatId, "👋 Welcome to 1Bingo!\nPlease share your phone number to continue:", contactOptions);
+    }
+  } catch (error) {
+    console.error("Error checking user:", error.message);
+    bot.sendMessage(chatId, "❌ Error checking registration. Try again.");
+  }
 });
 
-// ✅ Handle contact received
+// Handle contact share
 bot.on("contact", async (msg) => {
   const chatId = msg.chat.id;
   const contact = msg.contact;
-  const username = msg.from.username || "NoUsername";         // ✅ fixed JS fallback syntax
+  const username = msg.from.username || "NoUsername";
   const phoneNumber = contact.phone_number;
-  const firstName = contact.first_name || "";                 // ✅ fixed fallback
+  const firstName = contact.first_name || "";
+  const photoUrl = msg.from.photo?.small_file_id || ""; // optional
 
   try {
-    // ✅ Send to backend using correct field names
+    // Save user
     await axios.post(`${backendUrl}/api/user/telegram-auth`, {
       telegram_id: chatId,
-      username: username,
+      username,
       phone_number: phoneNumber,
-      first_name: firstName, // ✅ OPTIONAL - only if your backend expects it
+      first_name: firstName,
+      profile_picture: photoUrl, // store if backend supports it
     });
 
     console.log(`✅ Contact saved for ${username}`);
 
-    const options = {
+    bot.sendMessage(chatId, "✅ Phone received! Tap below to play 🎮", {
       reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "▶️ Play",
-              url: "https://bingo-telegram-web.vercel.app", // ✅ Update to your actual frontend
-            },
-          ],
-        ],
+        inline_keyboard: [[{ text: "▶️ Play", url: "https://bingo-telegram-web.vercel.app" }]],
       },
-    };
-
-    bot.sendMessage(chatId, "✅ Phone received! Tap 'Play' to continue 🎮", options);
+    });
   } catch (error) {
     console.error("❌ Error saving contact:", error.message);
     bot.sendMessage(chatId, "❌ Error saving your contact. Please try again later.");
   }
 });
 
-// ✅ /help
+// /help
 bot.onText(/\/help/, (msg) => {
   bot.sendMessage(
     msg.chat.id,
@@ -96,7 +100,7 @@ bot.onText(/\/help/, (msg) => {
   );
 });
 
-// ✅ /join
+// /join
 bot.onText(/\/join/, async (msg) => {
   const chatId = msg.chat.id;
   try {
@@ -112,13 +116,11 @@ bot.onText(/\/join/, async (msg) => {
   }
 });
 
-// ✅ /bingo
+// /bingo
 bot.onText(/\/bingo/, async (msg) => {
   const chatId = msg.chat.id;
   try {
-    const res = await axios.post(`${backendUrl}/api/bingo`, {
-      telegramId: chatId,
-    });
+    const res = await axios.post(`${backendUrl}/api/bingo`, { telegramId: chatId });
 
     if (res.data.success) {
       bot.sendMessage(chatId, "🎉 Congratulations! You called Bingo successfully!");
@@ -130,8 +132,7 @@ bot.onText(/\/bingo/, async (msg) => {
     bot.sendMessage(chatId, "❌ Error calling Bingo. Please try again.");
   }
 });
-
-// ✅ /status
+// /status
 bot.onText(/\/status/, async (msg) => {
   const chatId = msg.chat.id;
   try {
@@ -145,7 +146,7 @@ bot.onText(/\/status/, async (msg) => {
   }
 });
 
-// ✅ Start Express server
+// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Web server running on port ${PORT}`);
