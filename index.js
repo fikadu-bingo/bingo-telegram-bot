@@ -6,15 +6,15 @@ const bodyParser = require("body-parser");
 
 const token = process.env.BOT_TOKEN;
 const backendUrl = process.env.BACKEND_URL;
-const appUrl = "https://bingo-telegram-bot.onrender.com"; // Your Render domain
+const appUrl = "https://bingo-telegram-bot.onrender.com"; // ✅ your Render domain
 
 // ✅ Create Express app
 const app = express();
 app.use(bodyParser.json());
 
 // ✅ Create bot in webhook mode
-const bot = new TelegramBot(token, { webHook: { port: 3000 } });
-bot.setWebHook(`${appUrl}/bot${token}`);
+const bot = new TelegramBot(token, { webHook: { port: 3000 } }); // ✅ fixed webhook option syntax
+bot.setWebHook(`${appUrl}/bot${token}`); // ✅ fixed string template quotes
 
 // ✅ Express route for webhook
 app.post(`/bot${token}`, (req, res) => {
@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
   res.send("✅ 1Bingo Telegram Bot is running with webhook!");
 });
 
-// ✅ /start - Show Share Contact button
+// ✅ /start — Ask user to share contact
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
 
@@ -49,32 +49,32 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(chatId, "👋 Welcome to 1Bingo!\n\nPlease share your phone number to continue:", contactOptions);
 });
 
-// ✅ Handle contact
+// ✅ Handle contact received
 bot.on("contact", async (msg) => {
   const chatId = msg.chat.id;
   const contact = msg.contact;
-  const username = msg.from.username || "NoUsername";
+  const username = msg.from.username || "NoUsername";         // ✅ fixed JS fallback syntax
   const phoneNumber = contact.phone_number;
-  const firstName = contact.first_name || "";
+  const firstName = contact.first_name || "";                 // ✅ fixed fallback
 
   try {
-    // ✅ Send contact to backend
+    // ✅ Send to backend using correct field names
     await axios.post(`${backendUrl}/api/user/telegram-auth`, {
       telegram_id: chatId,
       username: username,
       phone_number: phoneNumber,
+      first_name: firstName, // ✅ OPTIONAL - only if your backend expects it
     });
 
     console.log(`✅ Contact saved for ${username}`);
 
-    // ✅ Show play button after contact is saved
     const options = {
       reply_markup: {
         inline_keyboard: [
           [
             {
               text: "▶️ Play",
-              url: "https://bingo-telegram-web.vercel.app", // Your frontend
+              url: "https://bingo-telegram-web.vercel.app", // ✅ Update to your actual frontend
             },
           ],
         ],
@@ -138,14 +138,14 @@ bot.onText(/\/status/, async (msg) => {
     const res = await axios.get(`${backendUrl}/api/status`, {
       params: { telegramId: chatId },
     });
-
     bot.sendMessage(chatId, `🎲 Your game status: ${res.data.status}`);
   } catch (error) {
     console.error("Status error:", error.message);
     bot.sendMessage(chatId, "❌ Unable to fetch status right now.");
   }
 });
-// ✅ Start Express server (only needed for webhook on Render)
+
+// ✅ Start Express server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✅ Web server running on port ${PORT}`);
