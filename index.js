@@ -35,11 +35,16 @@ bot.onText(/\/start/, async (msg) => {
     const exists = response.data.exists;
 
     if (exists) {
-      bot.sendMessage(chatId, "✅ You're already registered!\nTap below to play 🎮", {
-        reply_markup: {
-          inline_keyboard: [[{ text: "▶️ Play", url: "https://bingo-telegram-web.vercel.app" }]],
-        },
-      });
+    bot.sendMessage(chatId, "✅ You're already registered!\nTap below to play 🎮", {
+  reply_markup: {
+    inline_keyboard: [[
+      {
+        text: "▶️ Play",
+        web_app: { url: "https://bingo-telegram-web.vercel.app" }
+      }
+    ]]
+  }
+});
     } else {
       const contactOptions = {
         reply_markup: {
