@@ -30,17 +30,21 @@ app.get("/", (req, res) => {
 // /start — Ask phone only if not registered
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
+  
   try {
     const response = await axios.get(`${backendUrl}/api/user/check/${chatId}`);
     const exists = response.data.exists;
 
     if (exists) {
-    bot.sendMessage(chatId, "✅ You're already registered!\nTap below to play 🎮", {
+const frontendBaseUrl = "https://bingo-telegram-web.vercel.app";
+const playUrl = `${frontendBaseUrl}?telegram_id=${chatId}&first_name=${encodeURIComponent(msg.from.first_name || "")}&username=${encodeURIComponent(msg.from.username || "")}`;
+
+bot.sendMessage(chatId, "✅ You're already registered!\nTap below to play 🎮", {
   reply_markup: {
     inline_keyboard: [[
       {
         text: "▶️ Play",
-        web_app: { url: "https://bingo-telegram-web.vercel.app" }
+        url: playUrl,
       }
     ]]
   }
@@ -92,11 +96,14 @@ bot.on("contact", async (msg) => {
 
     console.log(`✅ Contact saved for ${username}`);
 
-    bot.sendMessage(chatId, "✅ Phone received! Tap below to play 🎮", {
-      reply_markup: {
-        inline_keyboard: [[{ text: "▶️ Play", url: "https://bingo-telegram-web.vercel.app" }]],
-      },
-    });
+  const frontendBaseUrl = "https://bingo-telegram-web.vercel.app";
+const playUrl = `${frontendBaseUrl}?telegram_id=${chatId}&first_name=${encodeURIComponent(firstName)}&username=${encodeURIComponent(username)}`;
+
+bot.sendMessage(chatId, "✅ Phone received! Tap below to play 🎮", {
+  reply_markup: {
+    inline_keyboard: [[{ text: "▶️ Play", url: playUrl }]],
+  },
+});
   } catch (error) {
     console.error("❌ Error saving contact:", error.message);
     bot.sendMessage(chatId, "❌ Error saving your contact. Please try again later.");
